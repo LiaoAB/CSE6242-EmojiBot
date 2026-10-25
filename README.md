@@ -1,121 +1,145 @@
-# EmojiBot Website
+# EmojiBot
 
-## About the Project
+EmojiBot suggests the emoji that best fits a message. Type a sentence and a
+bidirectional LSTM scores 43 emoji classes, all locally in the browser.
 
-EmojiBot is an innovative project designed to delve into the intricate relationship between words and emojis. Our journey began with an analysis of a tweet dataset rich in emojis. Through this analysis, we aimed to uncover the patterns and contexts in which emojis and words coexist.
+- **Live demo:** https://emoji-bot-iota.vercel.app
+- **Data dashboards:** [Tableau Public](https://public.tableau.com/views/Book2_16990836192980/Dashboard1)
 
-Key highlights of our project include:
+The deployed site is completely static. There is no prediction API and no
+request containing your message ever leaves the page. The original PyTorch
+checkpoint is exported to a compact int8 binary that the browser downloads
+once and runs with plain JavaScript.
 
-- **Data Analysis**: We've meticulously analyzed tweet data to understand how emojis are used in conjunction with words. This analysis forms the backbone of our insights.
+## How it works
 
-- **Model Development**: Our team has developed a sophisticated model that adeptly identifies the most suitable emoji for any given text. This model is the result of extensive research and fine-tuning.
+1. **Tokenize.** The message is lowercased and split into words, URLs,
+   mentions, hashtags, emoticons, emoji sequences, and punctuation using a
+   JavaScript port of the relevant parts of NLTK's `TweetTokenizer`.
+2. **Embed.** Each token is mapped to a 400-dimensional embedding. The
+   embedding table is stored as per-row symmetric int8 values with float32
+   scales, reducing the model from 122 MB to about 31 MB.
+3. **Encode.** A bidirectional LSTM (hidden size 128) reads the sequence in
+   both directions. The final forward and backward hidden states are
+   concatenated.
+4. **Classify.** A linear layer produces logits for 43 emoji labels, and a
+   softmax turns them into probabilities. The UI shows the top pick plus two
+   alternatives.
 
-- **Chat Application**: To bring our model to life, we've deployed it in a user-friendly chat application. This app interactively suggests emojis based on the text input by users. It's not just about suggesting emojis – it's about enhancing the way we communicate in the digital world.
+Model architecture:
 
-Our project stands at the intersection of data analysis and practical application, offering a unique perspective on digital communication trends.
+| Component | Shape |
+| --- | --- |
+| Embedding | 74,976 x 400 |
+| LSTM | 400 -> 128, bidirectional |
+| Linear | 256 -> 43 |
 
-### Features
+## Project structure
 
-- **Emoji Suggestion Model**: At the heart of EmojiBot is our advanced model that suggests the most fitting emoji for any given text. This feature is showcased in our interactive chat application, enhancing digital communication with relevant emojis.
+```text
+.
+├── public/
+│   ├── index.html          # Landing page and chat UI
+│   ├── styles.css
+│   ├── app.js              # UI, model loading, progress
+│   ├── inference.js        # Tokenizer, binary parser, LSTM forward pass
+│   └── model/v1/           # Exported browser model and metadata
+├── scripts/
+│   ├── export_web_model.py # Checkpoint -> quantized browser model
+│   └── test_web_inference.mjs
+├── app.py                  # Optional Flask API
+├── server.js               # Dependency-free local static server
+└── vercel.json
+```
 
-- **Interactive Chat Application**: Users can experience our emoji suggestion model in real-time. Just type a message, and the bot suggests emojis that complement the text, adding a fun and expressive twist to online chats.
+## Run locally
 
-- **Emoji Analysis Dashboard**: A deep dive into emoji usage:
-   - **Top Five Word Frequencies**: Explore the most common words associated with each emoji. This offers insight into the typical usage and context of various emojis.
-   - **Top Ten Important Words**: Discover key words that define each emoji, providing a glimpse into the underlying themes and concepts.
-   - **Emoji Similarity Insights**: On a separate dashboard, users can explore the relationships and similarities between emojis, revealing interesting patterns in how emojis are interconnected in digital communication.
+Node 18 or newer is required for the local server and tests.
 
-These features combine to create a comprehensive tool for understanding and utilizing emojis in a way that enriches online interactions.
+```sh
+npm start
+```
 
-## Technologies Used
+Then open http://localhost:3000. The first load downloads the 31 MB model;
+later loads use the browser cache. You can also serve the folder directly:
 
-### Backend
+```sh
+python3 -m http.server 3000 --directory public
+```
 
-- **Node.js**: For creating a scalable and efficient server-side application.
-- **PyTorch**: A machine learning library used for natural language processing tasks.
-- **NLTK (Natural Language Toolkit)**: A suite of libraries and programs for symbolic and statistical natural language processing.
-- **Flask**: A micro web framework written in Python, used for handling HTTP requests.
-- **Flask-CORS**: A Flask extension for handling Cross-Origin Resource Sharing (CORS), making cross-origin AJAX possible.
+## Test
 
-### Frontend
+```sh
+npm test
+```
 
-- **HTML5**: For structuring the web page and its content.
-- **CSS**: For styling the web page.
+This loads the exported binary in Node and checks tokenization plus sample
+predictions against values produced by the original PyTorch model.
 
-## Getting Started
+## Re-export the model
 
-To get a local copy up and running, follow these simple steps.
+The checkpoint is stored with Git LFS.
 
-### Prerequisites
+```sh
+git lfs install
+git lfs pull
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python scripts/export_web_model.py
+```
 
-- Install [Node.js](https://nodejs.org/)
-- Install [Python](https://www.python.org/)
-- Python libraries: Flask, Flask-CORS, PyTorch, NLTK (install using pip)
+The script writes `public/model/v1/{model.bin,model.json,vocab.json,emojis.json}`,
+prints the SHA-256 digest, and compares the quantized model with the original
+on random inputs.
 
-### Installation
+## Optional Flask API
 
-1. **Clone the repo**
-   ```sh
-   git clone https://github.com/your_username_/EmojiBot.git
-2. **Install NPM packages**
-   ```sh
-   npm install
-3. **Set up the Python environment**
-   - Install Python dependencies:
-   ```sh
-   pip install flask flask-cors torch nltk
-   
-### Running the Application
+The static site does not use Flask. To experiment with the original server:
 
-1. **Start the Backend Server**
-   - Navigate to the backend directory
-   - Run the Flask app
-   ```sh
-   python app.py
-2. **Start the Frontend**
-   - Open another terminal window
-   - Navigate to the frontend directory
-   - Start the Node.js server
-   ```sh
-   node server.js
-3. **Access the Application**
-   - Open your web browser.
-   - Visit `http://localhost:3000` to interact with the EmojiBot.
+```sh
+pip install -r requirements.txt
+python app.py
+```
 
-### Usage
+`POST /predict` accepts `{"message": "This is hilarious"}` and returns the
+predicted emoji plus the top three probabilities. `GET /health` reports the
+device in use.
 
-Enjoy EmojiBot in these ways:
+## Deploy
 
-- **Chat with EmojiBot**: Type in the chatbox and press 'Send' or 'Enter'. The bot will suggest emojis that match your message. It's a fun way to make your chats more expressive!
+`vercel.json` sets `public` as the output directory and gives the versioned
+model files an immutable cache policy. Import the repository in Vercel, or run:
 
-- **Emoji Analysis Dashboard**: Dive into this dashboard to see:
-   - **Top Five Word Frequencies**: Check out the most common words used with each emoji.
-   - **Top Ten Important Words**: Explore the key words that are closely associated with each emoji. It's intriguing to see what themes or ideas are connected to different emojis.
+```sh
+npx vercel --prod
+```
 
-- **Emoji Similarity Dashboard**: On another dashboard, explore emoji similarities.
-   - **Discover Emoji Relationships**: This part lets you see how emojis are related. It’s fascinating to find connections, like which emojis are often used in similar contexts or have related meanings.
+No environment variables or build step are required.
 
-These features offer a unique window into the emoji world, combining fun interactions with insightful data exploration. Enjoy exploring!
+## Data dashboards
 
+The page embeds two Tableau Public dashboards:
 
-## Contributing
+- **Emoji language patterns:** top words and distinctive terms per emoji.
+- **Emoji similarity:** how emojis group together by context.
 
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make to EmojiBot are **greatly appreciated**.
+## Limitations
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+- The model was trained on tweets, so it reflects the emoji conventions and
+  biases of that dataset.
+- Only 43 emoji classes are supported.
+- Sarcasm and long, nuanced messages are hard; treat the output as a suggestion.
+- The JavaScript tokenizer is a close approximation of NLTK's tokenizer, not a
+  byte-for-byte port of every edge case.
+
+## Team
+
+YuChen Liao, ChingYuan Kung, HuiChun Mo, Weilong Shen, YuehChang Yang,
+Lingfeng Zhang.
+
+Georgia Tech CSE 6242, Data and Visual Analytics.
 
 ## License
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-## Contact
-
-Member: [YuChen Liao](mailto:yliao309@gatech.edu), [ChingYuan Kung](mailto:ckung32@gatech.edu), [HuiChun Mo](mailto:hmo30@gatech.edu), [Weilong Shen](mailto:wshen61@gatech.edu), [YuehChang Yang](mailto:yyang3042@gatech.edu), [Lingfeng Zhang](mailto:lzhang755@gatech.edu) 
-
-Project Link: [https://github.com/yliao309/EmojiBot](https://github.com/yliao309/EmojiBot)
-
-
+MIT

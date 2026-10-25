@@ -1,30 +1,85 @@
-const express = require('express');
-const app = express();
-const PORT = 3000;
+import { createReadStream, statSync } from "node:fs";
+import { createServer } from "node:http";
+import { extname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-// Serve static files from the 'public' directory
-app.use(express.static('public'));
+const PUBLIC_DIR = fileURLToPath(new URL("./public/", import.meta.url));
+const PORT = Number(process.env.PORT) || 3000;
 
-// Parse JSON body (using built-in middleware as of Express 4.16+)
-app.use(express.json()); 
+const MIME_TYPES = {
+  ".css": "text/css; charset=utf-8",
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".map": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".txt": "text/plain; charset=utf-8",
+  ".bin": "application/octet-stream"
+};
 
-// Endpoint to handle chat messages
-app.post('/chat', (req, res) => {
-    const userMessage = req.body.message;
+function send(response, status, body, headers = {}) {
+  response.writeHead(status, {
+    "Content-Type": "text/plain; charset=utf-8",
+    "X-Content-Type-Options": "nosniff",
+    ...headers
+  });
+  response.end(body);
+}
 
-    // Simple bot logic (replace with your bot's logic or call to another service)
-    const botReply = `Hello! You said: "${userMessage}"`;
+function resolveFile(pathname) {
+  let decoded;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return null;
+  }
 
-    res.json({ reply: botReply });
+  const target = resolve(PUBLIC_DIR, `.${decoded}`);
+  if (target !== PUBLIC_DIR.slice(0, -1) && !target.startsWith(PUBLIC_DIR)) {
+    return null;
+  }
+
+  try {
+    const stats = statSync(target);
+    if (stats.isDirectory()) {
+      return { path: resolve(target, "index.html"), stats: statSync(resolve(target, "index.html")) };
+    }
+    return { path: target, stats };
+  } catch {
+    return null;
+  }
+}
+
+const server = createServer((request, response) => {
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    send(response, 405, "Method not allowed", { Allow: "GET, HEAD" });
+    return;
+  }
+
+  const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
+  const file = resolveFile(url.pathname);
+
+  if (!file) {
+    send(response, 404, "Not found");
+    return;
+  }
+
+  const extension = extname(file.path).toLowerCase();
+  const headers = {
+    "Content-Type": MIME_TYPES[extension] ?? "application/octet-stream",
+    "Content-Length": file.stats.size,
+    "Cache-Control": extension === ".html" ? "no-cache" : "public, max-age=0, must-revalidate"
+  };
+
+  response.writeHead(200, headers);
+  if (request.method === "HEAD") {
+    response.end();
+    return;
+  }
+  createReadStream(file.path).pipe(response);
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Something broke!');
-});
-
-// Start the server
-app.listen(PORT, () => {
-    console.log(`Server is running at http://localhost:${PORT}`);
+server.listen(PORT, () => {
+  console.log(`EmojiBot running at http://localhost:${PORT}`);
 });

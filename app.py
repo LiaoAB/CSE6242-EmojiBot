@@ -1,70 +1,124 @@
+"""Optional Flask API for EmojiBot.
+
+The deployed site does not need this server: inference runs in the browser.
+This is kept for local API experiments and is not required by the static site.
+
+    pip install -r requirements.txt
+    python app.py
+"""
+
+from __future__ import annotations
+
+import __main__
+import json
+import os
+from pathlib import Path
+
+import nltk
+import torch
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-import torch
-import nltk
-import json
 
-# Define any helper functions first
-def load_dict_from_json(file_path):
-    with open(file_path, 'r') as json_file:
-        data = json.load(json_file)
-    return data
+BASE_DIR = Path(__file__).resolve().parent
+MAX_TOKENS = 50
+
+app = Flask(__name__)
+CORS(app)
+
 
 class LSTMModel(torch.nn.Module):
     def __init__(self, vocab_size, embedding_dim, hidden_dim, num_layers, drop_out, bidirectional=True):
         super().__init__()
         self.embedding = torch.nn.Embedding(vocab_size, embedding_dim)
-        self.lstm = torch.nn.LSTM(embedding_dim, hidden_dim, num_layers, batch_first=True, bidirectional=bidirectional, dropout=drop_out)
+        self.lstm = torch.nn.LSTM(
+            embedding_dim,
+            hidden_dim,
+            num_layers,
+            batch_first=True,
+            bidirectional=bidirectional,
+            dropout=drop_out,
+        )
         self.linear = torch.nn.Linear(2 * hidden_dim * num_layers, 43)
 
     def forward(self, x):
         embedded = self.embedding(x)
-        output, (hidden, _) = self.lstm(embedded)
+        _, (hidden, _) = self.lstm(embedded)
         hidden = torch.cat((hidden[-2, :, :], hidden[-1, :, :]), dim=1)
-        x = self.linear(hidden)
-        return x
+        return self.linear(hidden)
 
 
-app = Flask(__name__)
-CORS(app)
+def load_json(name: str):
+    return json.loads((BASE_DIR / name).read_text())
 
-# Load the model and other necessary components here
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-mod = torch.load("/Users/ycliao/CSE6242/Project/emoji_model.pth", map_location=device)
-mod.eval()
 
-# Load your vocab and label_to_emoji
-vocab = load_dict_from_json('/Users/ycliao/CSE6242/Project/train_vocab.json')
-label_to_emoji = load_dict_from_json('/Users/ycliao/CSE6242/Project/label_to_emoji.json')
+def load_checkpoint(path: Path, target_device: torch.device):
+    """The checkpoint was pickled as ``__main__.LSTMModel``.
 
-def get_model_prediction(input_sentence):
-    tokenizer = nltk.tokenize.TweetTokenizer()
-    tokenized_sentence = tokenizer.tokenize(input_sentence.lower())
-    ind = []
-    for token in tokenized_sentence:
-        if token in vocab: ind.append(vocab[token])
+    Expose this module's class under that name while unpickling so the file
+    also loads when app.py is imported instead of run directly.
+    """
+    had_class = hasattr(__main__, "LSTMModel")
+    original_class = getattr(__main__, "LSTMModel", None)
+    __main__.LSTMModel = LSTMModel
+    try:
+        return torch.load(path, map_location=target_device, weights_only=False)
+    finally:
+        if had_class:
+            __main__.LSTMModel = original_class
         else:
-            if token.startswith("#"): ind.append(vocab["UNK_HASHTAG"])
-            elif token.startswith("@"): ind.append(vocab["UNK_MENTION"])
-            else: ind.append(vocab["UNK_WORD"])
-        if len(ind) >= 50: break
-    tensor = torch.LongTensor([ind]).to(device)
-    output = mod.forward(tensor)
-    _, output_max = torch.topk(output, k=1, dim=1)
-    emoji = label_to_emoji[str(output_max[0,0].item())]
-    return emoji
+            del __main__.LSTMModel
 
-@app.route('/predict', methods=['POST'])
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = load_checkpoint(BASE_DIR / "emoji_model.pth", device)
+model.eval()
+vocab = load_json("train_vocab.json")
+label_to_emoji = load_json("label_to_emoji.json")
+tokenizer = nltk.tokenize.TweetTokenizer()
+
+
+def get_prediction(text: str) -> dict:
+    ids = []
+    for token in tokenizer.tokenize(text.lower()):
+        if token in vocab:
+            ids.append(vocab[token])
+        elif token.startswith("#"):
+            ids.append(vocab["UNK_HASHTAG"])
+        elif token.startswith("@"):
+            ids.append(vocab["UNK_MENTION"])
+        else:
+            ids.append(vocab["UNK_WORD"])
+        if len(ids) >= MAX_TOKENS:
+            break
+
+    if not ids:
+        ids.append(vocab["UNK_WORD"])
+
+    with torch.no_grad():
+        logits = model(torch.tensor([ids], dtype=torch.long, device=device))
+        probabilities = torch.softmax(logits, dim=1)[0]
+
+    top = torch.topk(probabilities, k=min(3, len(probabilities)))
+    predictions = [
+        {"emoji": label_to_emoji[str(index.item())], "probability": round(score.item(), 6)}
+        for score, index in zip(top.values, top.indices)
+    ]
+    return {"reply": predictions[0]["emoji"], "predictions": predictions}
+
+
+@app.post("/predict")
 def predict():
-    data = request.json
-    user_message = data['message']
-    bot_reply = get_model_prediction(user_message)
-    return jsonify({'reply': bot_reply})
+    payload = request.get_json(silent=True) or {}
+    message = str(payload.get("message", "")).strip()
+    if not message:
+        return jsonify({"error": "message is required"}), 400
+    return jsonify(get_prediction(message))
 
-def load_dict_from_json(file_path):
-    with open(file_path, 'r') as json_file:
-        data = json.load(json_file)
-    return data
 
-if __name__ == '__main__':
-    app.run(port=5000)
+@app.get("/health")
+def health():
+    return jsonify({"status": "ok", "device": str(device)})
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))

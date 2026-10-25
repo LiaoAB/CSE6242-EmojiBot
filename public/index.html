@@ -3,320 +3,209 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChatBox</title>
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Open Sans', sans-serif;
-            background: #E6E6FA; /* Pale lavender */
-            margin: 0;
-            padding: 20px;
-        }
-
-        #chatContainer {
-            width: 365px;
-            height: 600px;
-            background-color: #f8f9fa;
-            box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.1);
-            border-radius: 25px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            transition: height 0.3s ease;
-        }
-
-        #chatHeader {
-            padding: 12px 20px;
-            background: #007BFF;
-            color: white;
-            font-size: 20px;
-            font-weight: bold;
-            text-align: left;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        #chatBox {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);
-            border-radius: 20px;
-        }
-
-        #inputArea {
-            display: flex;
-            padding: 10px 20px;
-            align-items: center;
-            border-top: 1px solid #e0e0e0;
-        }
-
-        #inputBox {
-            flex: 1;
-            padding: 10px;
-            border-radius: 20px;
-            border: 1px solid #ccc;
-            margin-right: 10px;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-
-        #inputBox:focus {
-            border-color: #007BFF;
-            box-shadow: 0 0 5px rgba(0,123,255,0.25);
-            outline: none;
-        }
-
-        button {
-            padding: 8px 15px;
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: transform 0.3s ease, background-color 0.3s ease;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-            transform: scale(1.05);
-        }
-
-        #clearBtn, #foldBtn {
-            background-color: transparent;
-            border: 1px solid white;
-        }
-
-        #clearBtn:hover, #foldBtn:hover {
-            background-color: white;
-            color: #007BFF;
-        }
-
-        .user, .bot {
-            display: flex;
-            margin: 10px 0;
-        }
-
-        .user p, .bot p {
-            padding: 10px 15px;
-            border-radius: 20px;
-            max-width: 70%;
-            font-size: 16px;
-        }
-
-        .user {
-            justify-content: flex-end;
-        }
-
-        .user p {
-            background-color: #007BFF;
-            color: white;
-        }
-
-        .bot p {
-            background-color: #e9ecef;
-        }
-
-        .main-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .dashboard {
-            width: 100%;
-            margin-bottom: 10px;
-        }
-
-        .chat-container {
-            width: 50%;
-        }
-
-        @media screen and (max-width: 768px) {
-            .dashboard, .chat-container {
-                width: 100%;
-            }
-        }
-
-        ::-webkit-scrollbar {
-            width: 10px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-
-        a:hover {
-            text-decoration: underline;
-            color: #007BFF;
-        }
-    </style>
+    <title>EmojiBot — Find the right emoji</title>
+    <meta name="description" content="EmojiBot suggests the emoji that fits your message. A bidirectional LSTM runs entirely in your browser.">
+    <meta name="theme-color" content="#f6f2ea">
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-    <div class="main-container">
-        <!-- Tableau dashboard container -->
-        <div class="dashboard">
-            <div class='tableauPlaceholder' id='viz1700518306167' style='position: relative'>
-                <noscript>
-                    <a href='#'>
-                        <img alt='Dashboard 2 ' src='https://public.tableau.com/static/images/Bo/Book2_16990836192980/Dashboard2/1_rss.png' style='border: none' />
-                    </a>
-                </noscript>
-                <object class='tableauViz'  style='display:none;'>
-                    <param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' />
-                    <param name='embed_code_version' value='3' />
-                    <param name='site_root' value='' />
-                    <param name='name' value='Book2_16990836192980/Dashboard2' />
-                    <param name='tabs' value='no' />
-                    <param name='toolbar' value='yes' />
-                    <param name='static_image' value='https://public.tableau.com/static/images/Bo/Book2_16990836192980/Dashboard2/1.png' />
-                    <param name='animate_transition' value='yes' />
-                    <param name='display_static_image' value='yes' />
-                    <param name='display_spinner' value='yes' />
-                    <param name='display_overlay' value='yes' />
-                    <param name='display_count' value='yes' />
-                    <param name='language' value='en-us' />
-                </object>
-            </div>
-            <script type='text/javascript'>
-                var divElement = document.getElementById('viz1700518306167');
-                var vizElement = divElement.getElementsByTagName('object')[0];
-                if ( divElement.offsetWidth > 800 ) {
-                    vizElement.style.width='1366px';vizElement.style.height='795px';
-                } else if ( divElement.offsetWidth > 500 ) {
-                    vizElement.style.width='1366px';vizElement.style.height='795px';
-                } else {
-                    vizElement.style.width='100%';vizElement.style.height='727px';
-                }
-                var scriptElement = document.createElement('script');
-                scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';
-                vizElement.parentNode.insertBefore(scriptElement, vizElement);
-            </script>
-        </div>
-        <div class="dashboard">
-            <div class='tableauPlaceholder' id='viz1700518299104' style='position: relative'>
-                <noscript>
-                    <a href='#'><img alt='Dashboard 1 ' src='https://public.tableau.com/static/images/Bo/Book2_16990836192980/Dashboard1/1_rss.png' style='border: none' /></a>
-                </noscript>
-                <object class='tableauViz'  style='display:none;'>
-                    <!-- Parameters for the Tableau dashboard -->
-                    <param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' />
-                    <param name='embed_code_version' value='3' />
-                    <param name='site_root' value='' />
-                    <param name='name' value='Book2_16990836192980/Dashboard1' />
-                    <param name='tabs' value='no' />
-                    <param name='toolbar' value='yes' />
-                    <param name='static_image' value='https://public.tableau.com/static/images/Bo/Book2_16990836192980/Dashboard1/1.png' />
-                    <param name='animate_transition' value='yes' />
-                    <param name='display_static_image' value='yes' />
-                    <param name='display_spinner' value='yes' />
-                    <param name='display_overlay' value='yes' />
-                    <param name='display_count' value='yes' />
-                    <param name='language' value='en-us' />
-                    <param name='filter' value='publish=yes' />
-                </object>
-            </div>
-            <script type='text/javascript'>
-                var divElement = document.getElementById('viz1700518299104');
-                var vizElement = divElement.getElementsByTagName('object')[0];
-                if ( divElement.offsetWidth > 800 ) {
-                    vizElement.style.width='1366px';vizElement.style.height='795px';
-                } else if ( divElement.offsetWidth > 500 ) {
-                    vizElement.style.width='1366px';vizElement.style.height='795px';
-                } else {
-                    vizElement.style.width='100%';vizElement.style.height='727px';
-                }
-                var scriptElement = document.createElement('script');
-                scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';
-                vizElement.parentNode.insertBefore(scriptElement, vizElement);
-            </script>
-        </div>
-        <!-- Chat container -->
-        <div class="chat-container" id="chatContainer">
-            <div id="chatHeader">
-                Emoji Predict Bot
-                <div>
-                    <button id="clearBtn">Clear</button>
-                    <button id="foldBtn">Fold</button>
+    <header class="site-header">
+        <a class="brand" href="#top" aria-label="EmojiBot home">
+            <span class="brand-mark" aria-hidden="true">◕‿◕</span>
+            <span>EmojiBot</span>
+        </a>
+        <nav class="site-nav" aria-label="Main navigation">
+            <a href="#try">Try it</a>
+            <a href="#how">How it works</a>
+            <a href="#insights">Data insights</a>
+            <a class="nav-github" href="https://github.com/LiaoAB/CSE6242-EmojiBot" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+        </nav>
+    </header>
+
+    <main id="top">
+        <section class="hero" id="try">
+            <div class="hero-copy">
+                <p class="eyebrow">CSE 6242 · Data &amp; Visual Analytics</p>
+                <h1>Say it with the<br><span class="highlight">right emoji.</span></h1>
+                <p class="lede">
+                    Type a message and EmojiBot finds the emoji that fits.
+                    The model runs entirely in your browser — no messages are sent to a server.
+                </p>
+
+                <div class="model-status" id="modelStatus" data-state="loading" role="status" aria-live="polite">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    <span id="statusText">Loading the model…</span>
+                    <span class="status-progress" id="statusProgress" hidden></span>
                 </div>
-            </div>              
-            <div id="chatBox"></div>
-            <div id="inputArea">
-                <input type="text" id="inputBox" placeholder="Type a message...">
-                <button onclick="sendMessage()">Send</button>
+
+                <ul class="example-list" aria-label="Example messages">
+                    <li><button class="example-chip" type="button" data-example="This is hilarious lol">This is hilarious lol</button></li>
+                    <li><button class="example-chip" type="button" data-example="Thank you so much!">Thank you so much!</button></li>
+                    <li><button class="example-chip" type="button" data-example="I just got the job!">I just got the job!</button></li>
+                    <li><button class="example-chip" type="button" data-example="I miss you">I miss you</button></li>
+                </ul>
+
+                <dl class="model-facts">
+                    <div>
+                        <dt>Model</dt>
+                        <dd>Bi-LSTM</dd>
+                    </div>
+                    <div>
+                        <dt>Vocabulary</dt>
+                        <dd>74,976</dd>
+                    </div>
+                    <div>
+                        <dt>Emoji labels</dt>
+                        <dd>43</dd>
+                    </div>
+                    <div>
+                        <dt>Inference</dt>
+                        <dd>On-device</dd>
+                    </div>
+                </dl>
             </div>
-    </div>
 
-    <script>
-        document.getElementById('clearBtn').addEventListener('click', function() {
-            document.getElementById('chatBox').innerHTML = '';
-        });
+            <div class="chat-card">
+                <div class="chat-card-header">
+                    <div class="chat-identity">
+                        <span class="chat-avatar" aria-hidden="true">◕‿◕</span>
+                        <div>
+                            <p class="chat-name">EmojiBot</p>
+                            <p class="chat-subtitle" id="chatSubtitle">Waking up…</p>
+                        </div>
+                    </div>
+                    <button class="icon-button" id="clearBtn" type="button" title="Clear conversation" aria-label="Clear conversation">
+                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                            <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 13h10l1-13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
 
-        let isFolded = false;
-        document.getElementById('foldBtn').addEventListener('click', function() {
-            const chatContainer = document.getElementById('chatContainer');
-            if (!isFolded) {
-                chatContainer.style.height = '50px'; // Header height
-                this.innerHTML = 'Unfold';
-                isFolded = true;
-            } else {
-                chatContainer.style.height = '600px';
-                this.innerHTML = 'Fold';
-                isFolded = false;
-            }
-        });
+                <div class="chat-log" id="chatLog" role="log" aria-live="polite" aria-label="Conversation"></div>
 
-        document.getElementById('inputBox').addEventListener('keydown', function(e) {
-            if (e.keyCode === 13 && !e.shiftKey) { 
-                e.preventDefault(); 
-                sendMessage();
-            }
-        });
+                <form class="composer" id="composer" autocomplete="off">
+                    <label class="sr-only" for="messageInput">Your message</label>
+                    <input
+                        id="messageInput"
+                        name="message"
+                        type="text"
+                        placeholder="Type something…"
+                        maxlength="280"
+                        autocomplete="off"
+                        enterkeyhint="send"
+                        disabled
+                    >
+                    <button class="send-button" id="sendBtn" type="submit" disabled>
+                        <span>Send</span>
+                        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
+                            <path d="M4 12h15m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </form>
+                <p class="privacy-note">
+                    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                        <rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                        <path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                    </svg>
+                    Everything runs on your device. Nothing you type leaves this page.
+                </p>
+            </div>
+        </section>
 
-        async function sendMessage() {
-            const inputBox = document.getElementById('inputBox');
-            const chatBox = document.getElementById('chatBox');
+        <section class="how" id="how">
+            <div class="section-heading">
+                <p class="eyebrow">How it works</p>
+                <h2>From words to one well-chosen emoji.</h2>
+            </div>
+            <div class="step-grid">
+                <article class="step">
+                    <span class="step-number">01</span>
+                    <h3>Clean &amp; tokenize</h3>
+                    <p>The message is lowercased and split the way the training tweets were: URLs, mentions, hashtags, emoticons, and words.</p>
+                </article>
+                <article class="step">
+                    <span class="step-number">02</span>
+                    <h3>Read both directions</h3>
+                    <p>Each token becomes an embedding. A bidirectional LSTM reads the message forward and backward to capture context.</p>
+                </article>
+                <article class="step">
+                    <span class="step-number">03</span>
+                    <h3>Pick the best fit</h3>
+                    <p>A final layer scores 43 emoji classes. The highest probability wins; the next two are shown as alternatives.</p>
+                </article>
+            </div>
+            <p class="technical-note">
+                The exported embedding table uses per-row int8 quantization, shrinking the model from 122 MB to about 31 MB
+                while keeping predictions aligned with the original PyTorch model.
+            </p>
+        </section>
 
-            if (inputBox.value.trim() === "") return;
+        <section class="insights" id="insights">
+            <div class="section-heading split">
+                <div>
+                    <p class="eyebrow">Data insights</p>
+                    <h2>What the tweets reveal.</h2>
+                </div>
+                <p class="section-aside">
+                    Explore the words that cluster around each emoji and how emojis relate to one another.
+                    Dashboards load from Tableau Public.
+                </p>
+            </div>
 
-            // Add user's message to the chat box
-            let userMessage = `<div class="user"><p>${inputBox.value}</p></div>`;
-            chatBox.innerHTML += userMessage;
+            <figure class="dashboard">
+                <figcaption>
+                    <div>
+                        <h3>Emoji language patterns</h3>
+                        <p>Top words and most distinctive terms associated with each emoji.</p>
+                    </div>
+                    <a href="https://public.tableau.com/views/Book2_16990836192980/Dashboard1" rel="noreferrer">Open in Tableau <span aria-hidden="true">↗</span></a>
+                </figcaption>
+                <div class="dashboard-frame dashboard-frame--patterns">
+                    <iframe
+                        title="Emoji language patterns dashboard"
+                        src="https://public.tableau.com/views/Book2_16990836192980/Dashboard1?:showVizHome=no&:embed=true"
+                        loading="lazy"
+                        allowfullscreen
+                    ></iframe>
+                </div>
+            </figure>
 
-            // Get bot response from the server
-            const response = await fetch('http://localhost:5000/predict', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message: inputBox.value })
-            });
+            <figure class="dashboard">
+                <figcaption>
+                    <div>
+                        <h3>Emoji similarity</h3>
+                        <p>How emojis group together based on the contexts they appear in.</p>
+                    </div>
+                    <a href="https://public.tableau.com/views/Book2_16990836192980/Dashboard2" rel="noreferrer">Open in Tableau <span aria-hidden="true">↗</span></a>
+                </figcaption>
+                <div class="dashboard-frame dashboard-frame--similarity">
+                    <iframe
+                        title="Emoji similarity dashboard"
+                        src="https://public.tableau.com/views/Book2_16990836192980/Dashboard2?:showVizHome=no&:embed=true"
+                        loading="lazy"
+                        allowfullscreen
+                    ></iframe>
+                </div>
+            </figure>
+        </section>
+    </main>
 
-            const data = await response.json();
-            const botReply = data.reply;
+    <footer class="site-footer">
+        <div>
+            <p class="footer-brand">EmojiBot</p>
+            <p>A Georgia Tech CSE 6242 project.</p>
+        </div>
+        <div class="footer-links">
+            <a href="https://github.com/LiaoAB/CSE6242-EmojiBot" rel="noreferrer">Source</a>
+            <a href="https://github.com/LiaoAB/CSE6242-EmojiBot#readme" rel="noreferrer">README</a>
+            <a href="#top">Back to top ↑</a>
+        </div>
+    </footer>
 
-            // Add bot's message to the chat box
-            chatBox.innerHTML += `<div class="bot"><p>${botReply}</p></div>`;
-
-            // Clear the input box
-            inputBox.value = '';
-
-            // Scroll to the bottom of the chat box
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-    </script>
-
+    <script type="module" src="./app.js"></script>
 </body>
 </html>

@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "magic": "EMOJI01",
+  "vocabSize": 74976,
+  "embeddingDim": 400,
+  "hiddenDim": 128,
+  "numLayers": 1,
+  "numLabels": 43,
+  "maxTokens": 50,
+  "embeddingQuantization": "per-row symmetric int8",
+  "sizeBytes": 32501300,
+  "sha256": "29f4f630bb2df16c65e545179ad4063ead2df9f5455e35964bfd9f85aaab596a",
+  "offsets": {
+    "embedding": 8,
+    "embeddingScales": 29990408,
+    "lstmForwardWih": 30290312,
+    "lstmForwardWhh": 31109512,
+    "lstmForwardBias": 31371656,
+    "lstmBackwardWih": 31373704,
+    "lstmBackwardWhh": 32192904,
+    "lstmBackwardBias": 32455048,
+    "linearWeight": 32457096,
+    "linearBias": 32501128
+  },
+  "lengths": {
+    "embedding": 29990400,
+    "embeddingScales": 74976,
+    "lstmForwardWih": 204800,
+    "lstmForwardWhh": 65536,
+    "lstmForwardBias": 512,
+    "lstmBackwardWih": 204800,
+    "lstmBackwardWhh": 65536,
+    "lstmBackwardBias": 512,
+    "linearWeight": 11008,
+    "linearBias": 43
+  }
+}
